@@ -340,6 +340,7 @@ var parseMaterials = function () {
 				name: toTitleCase(id),
 				notes: (fileMatter.data.notes) ? md.render(fileMatter.data.notes) : '',
 				data: localData,
+        source: content,
         id: id
 			};
 		} else {
@@ -347,6 +348,7 @@ var parseMaterials = function () {
 				name: toTitleCase(id.split('.')[1]),
 				notes: (fileMatter.data.notes) ? md.render(fileMatter.data.notes) : '',
 				data: localData,
+        source: content,
         id: id
 			};
 		}
