@@ -17,9 +17,7 @@ describe('fabricator-assemble', function () {
 		data: ['./test/fixtures/data/**/*.{yml,json}'],
 		docs: './test/fixtures/docs/**/*',
 		dest: './test/output',
-		helpers: {
-			markdown: require('helper-markdown')
-		},
+		helpers: {},
 		logErrors: true
 	};
 

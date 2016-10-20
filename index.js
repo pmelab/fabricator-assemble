@@ -5,6 +5,8 @@ var chalk = require('chalk');
 var fs = require('fs');
 var globby = require('globby');
 var Handlebars = require('handlebars');
+var twig = require('twig');
+var twigMarkdown = require('twig-markdown');
 var inflect = require('i')();
 var matter = require('gray-matter');
 var md = require('markdown-it')({ html: true, linkify: true });
@@ -12,6 +14,8 @@ var mkdirp = require('mkdirp');
 var path = require('path');
 var sortObj = require('sort-object');
 var yaml = require('js-yaml');
+
+twig.extend(twigMarkdown);
 
 
 /**
@@ -174,7 +178,8 @@ var getName = function (filePath, preserveNumbers) {
  */
 var getMatter = function (file) {
 	return matter.read(file, {
-		parser: require('js-yaml').safeLoad
+		parser: require('js-yaml').safeLoad,
+    delims: ['{#\n---', '---\n#}']
 	});
 };
 
@@ -257,7 +262,7 @@ var toTitleCase = function(str) {
  * @return {String}
  */
 var wrapPage = function (page, layout) {
-	return layout.replace(/\{\%\s?body\s?\%\}/, page);
+	return layout.replace(/\{#--\s?body\s?--#}/, page);
 };
 
 
@@ -334,13 +339,15 @@ var parseMaterials = function () {
 			assembly.materials[collection].items[key] = {
 				name: toTitleCase(id),
 				notes: (fileMatter.data.notes) ? md.render(fileMatter.data.notes) : '',
-				data: localData
+				data: localData,
+        id: id
 			};
 		} else {
 			assembly.materials[parent].items[collection].items[key] = {
 				name: toTitleCase(id.split('.')[1]),
 				notes: (fileMatter.data.notes) ? md.render(fileMatter.data.notes) : '',
-				data: localData
+				data: localData,
+        id: id
 			};
 		}
 
@@ -352,18 +359,29 @@ var parseMaterials = function () {
 		// replace local fields on the fly with name-spaced keys
 		// this allows partials to use local front-matter data
 		// only affects the compilation environment
-		if (!_.isEmpty(localData)) {
-			_.forEach(localData, function (val, key) {
-				// {{field}} => {{material-name.field}}
-				var regex = new RegExp('(\\{\\{[#\/]?)(\\s?' + key + '+?\\s?)(\\}\\})', 'g');
-				content = content.replace(regex, function (match, p1, p2, p3) {
-					return p1 + id.replace(/\./g, '-') + '.' + p2.replace(/\s/g, '') + p3;
-				});
-			});
-		}
+    // TODO: don't do this with twig. figure out namespacing
+		// if (!_.isEmpty(localData)) {
+		// 	_.forEach(localData, function (val, key) {
+		// 		// {{field}} => {{material-name.field}}
+		// 		var regex = new RegExp('(\\{\\{[#\/]?)(\\s?' + key + '+?\\s?)(\\}\\})', 'g');
+		// 		content = content.replace(regex, function (match, p1, p2, p3) {
+		// 			return p1 + id.replace(/\./g, '-') + '.' + p2.replace(/\s/g, '') + p3;
+		// 		});
+		// 	});
+		// }
 
 		// register the partial
-		Handlebars.registerPartial(id, content);
+    try {
+      twig.twig({
+        id: id,
+        data: content,
+        allowInlineIncludes: true
+      });
+    } catch (exc) {
+      if (!exc.message.match(/^There is already a template with the ID/)) {
+        throw exc;
+      }
+    }
 
 	});
 
@@ -438,7 +456,17 @@ var parseLayoutIncludes = function () {
 	files.forEach(function (file) {
 		var id = getName(file);
 		var content = fs.readFileSync(file, 'utf-8');
-		Handlebars.registerPartial(id, content);
+    try {
+      twig.twig({
+        id: id,
+        data: content,
+        allowInlineIncludes: true
+      });
+    } catch (exc) {
+      if (!exc.message.match(/^There is already a template with the ID/)) {
+        throw exc;
+      }
+    }
 	});
 
 };
@@ -508,71 +536,6 @@ var parseViews = function () {
 
 };
 
-
-/**
- * Register new Handlebars helpers
- */
-var registerHelpers = function () {
-
-	// get helper files
-	var resolveHelper = path.join.bind(null, __dirname, 'helpers');
-	var localHelpers = fs.readdirSync(resolveHelper());
-	var userHelpers = options.helpers;
-
-	// register local helpers
-	localHelpers.map(function (helper) {
-		var key = helper.match(/(^\w+?-)(.+)(\.\w+)/)[2];
-		var path = resolveHelper(helper);
-		Handlebars.registerHelper(key, require(path));
-	});
-
-
-	// register user helpers
-	for (var helper in userHelpers) {
-		if (userHelpers.hasOwnProperty(helper)) {
-			Handlebars.registerHelper(helper, userHelpers[helper]);
-		}
-	}
-
-
-	/**
-	 * Helpers that require local functions like `buildContext()`
-	 */
-
-	/**
-	 * `material`
-	 * @description Like a normal partial include (`{{> partialName }}`),
-	 * but with some additional templating logic to help with nested block iterations.
-	 * The name of the helper is the singular form of whatever is defined as the `options.keys.materials`
-	 * @example
-	 * {{material name context}}
-	 */
-	Handlebars.registerHelper(inflect.singularize(options.keys.materials), function (name, context, opts) {
-
-		// remove leading numbers from name keyword
-		// partials are always registered with the leading numbers removed
-		// This is for both the subCollection as the file(name) itself!
-		var key = name.replace(/(\d+[\-\.])+/, '').replace(/(\d+[\-\.])+/, '');
-
-		// attempt to find pre-compiled partial
-		var template = Handlebars.partials[key],
-			fn;
-
-		// compile partial if not already compiled
-		if (!_.isFunction(template)) {
-			fn = Handlebars.compile(template);
-		} else {
-			fn = template;
-		}
-
-		// return beautified html with trailing whitespace removed
-		return beautifyHtml(fn(buildContext(context, opts.hash)).replace(/^\s+/, ''), options.beautifier);
-
-	});
-
-};
-
-
 /**
  * Setup the assembly
  * @param  {Objet} options  User options
@@ -583,7 +546,6 @@ var setup = function (userOptions) {
 	options = _.merge({}, defaults, userOptions);
 
 	// setup steps
-	registerHelpers();
 	parseLayouts();
 	parseLayoutIncludes();
 	parseData();
@@ -623,10 +585,10 @@ var assemble = function () {
 			pageMatter.data.baseurl = '..';
 		}
 
-		// template using Handlebars
+		// template using Twig
 		var source = wrapPage(pageContent, assembly.layouts[pageMatter.data.layout || options.layout]),
 			context = buildContext(pageMatter.data),
-			template = Handlebars.compile(source);
+			template = twig.twig({data: source, allowInlineIncludes: true});
 
 		// redefine file path if dest front-matter variable is defined
 		if (pageMatter.data.dest) {
@@ -638,13 +600,13 @@ var assemble = function () {
 
 		// write file
 		mkdirp.sync(path.dirname(filePath));
-		fs.writeFileSync(filePath, template(context));
+		fs.writeFileSync(filePath, template.render(context));
 
 		// write a copy file if custom dest-copy front-matter variable is defined
 		if (pageMatter.data['dest-copy']) {
 			var copyPath = path.normalize(pageMatter.data['dest-copy']);
 			mkdirp.sync(path.dirname(copyPath));
-			fs.writeFileSync(copyPath, template(context));
+			fs.writeFileSync(copyPath, template.render(context));
 		}
 	});
 

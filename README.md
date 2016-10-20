@@ -1,4 +1,10 @@
-# Fabricator Assemble
+# Fabricator Assemble - Twig version
+
+This is a forked version of [fabricator-asseble](https://github.com/fbrctr/fabricator-assemble)
+using [Twigjs](https://github.com/twigjs/twig.js/wiki) instead of Handlebars.
+
+---
+Readme from [fabricator-asseble](https://github.com/fbrctr/fabricator-assemble):
 
 [![Build Status](https://travis-ci.org/fbrctr/fabricator-assemble.svg?branch=master)](https://travis-ci.org/fbrctr/fabricator-assemble) [![npm version](https://badge.fury.io/js/fabricator-assemble.svg)](http://badge.fury.io/js/fabricator-assemble)
 

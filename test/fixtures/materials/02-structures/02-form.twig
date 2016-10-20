@@ -1,5 +1,5 @@
 <form action="">
-	<p>{{form-desc}}</p>
+	<p>{{form_desc}}</p>
 	<input type="text" placeholder="{{user.user.name}}">
-	{{> button name="Universe"}}
+	{%  include "button" with {'name' : 'Universe'} %}
 </form>

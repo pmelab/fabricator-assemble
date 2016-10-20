@@ -1,0 +1,57 @@
+{#
+---
+title: Document Name
+name: World
+form_desc: Lorem ipsum dolor sit amet, consectetur.
+---
+#}
+
+<h1>{{home.greeting}}, {{name}}!</h1>
+
+<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Veritatis numquam eaque ea enim tempore, quaerat, reprehenderit, ut eos incidunt impedit maiores quibusdam porro? Saepe, debitis tenetur voluptates necessitatibus, ipsa nesciunt.</p>
+
+{% include "button" %}
+
+{% include "form" with {'form_desc': 'A cool form.'} %}
+
+{% for material in materials %}
+  <h1>{{material.name}}</h1>
+
+  {% for section in material.items %}
+    <h2>{{section.name}}</h2>
+
+    {% if section.notes %}
+      <div class="notes">
+        {{section.notes}}
+      </div>
+    {% endif %}
+
+    {% if section.items %}
+      {% for sub in section.items %}
+        <h3>{{sub.name}}</h3>
+
+        {% if sub.notes %}
+          <div class="notes">
+            {{sub.notes}}
+          </div>
+        {% endif %}
+
+        <div class="item">
+          {% include sub.id with sub.data %}
+          {#
+           # TODO: properly replicate this
+           # {{material @key @root}}
+           #}
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="item">
+          {% include section.id with section.data %}
+          {#
+           # TODO: properly replicate this
+           # {{material @key @root}}
+           #}
+      </div>
+    {% endif %}
+  {% endfor %}
+{% endfor %}
