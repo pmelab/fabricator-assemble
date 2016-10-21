@@ -15,6 +15,7 @@ var path = require('path');
 var sortObj = require('sort-object');
 var yaml = require('js-yaml');
 
+twig.cache(false);
 twig.extend(twigMarkdown);
 
 
@@ -373,17 +374,11 @@ var parseMaterials = function () {
 		// }
 
 		// register the partial
-    try {
-      twig.twig({
-        id: id,
-        data: content,
-        allowInlineIncludes: true
-      });
-    } catch (exc) {
-      if (!exc.message.match(/^There is already a template with the ID/)) {
-        throw exc;
-      }
-    }
+    twig.twig({
+      id: id,
+      data: content,
+      allowInlineIncludes: true
+    });
 
 	});
 
@@ -458,17 +453,11 @@ var parseLayoutIncludes = function () {
 	files.forEach(function (file) {
 		var id = getName(file);
 		var content = fs.readFileSync(file, 'utf-8');
-    try {
-      twig.twig({
-        id: id,
-        data: content,
-        allowInlineIncludes: true
-      });
-    } catch (exc) {
-      if (!exc.message.match(/^There is already a template with the ID/)) {
-        throw exc;
-      }
-    }
+    twig.twig({
+      id: id,
+      data: content,
+      allowInlineIncludes: true
+    });
 	});
 
 };
