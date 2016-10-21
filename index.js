@@ -102,7 +102,17 @@ var defaults = {
 	 * Whether or not to log errors to console
 	 * @type {Boolean}
 	 */
-	logErrors: false
+	logErrors: false,
+
+  /**
+   * Additional twig filters.
+   */
+  filters: {},
+
+  /**
+   * Additional twig functions.
+   */
+  functions: {}
 };
 
 
@@ -527,6 +537,7 @@ var parseViews = function () {
 
 };
 
+
 /**
  * Setup the assembly
  * @param  {Objet} options  User options
@@ -536,7 +547,17 @@ var setup = function (userOptions) {
 	// merge user options with defaults
 	options = _.merge({}, defaults, userOptions);
 
-	// setup steps
+  // setup steps
+  if (options.filters) {
+    for (var key in options.filters) {
+      twig.extendFilter(key, options.filters[key]);
+    }
+  }
+  if (options.functions) {
+    for (var key in options.functions) {
+      twig.extendFunction(key, options.functions[key]);
+    }
+  }
 	parseLayouts();
 	parseLayoutIncludes();
 	parseData();

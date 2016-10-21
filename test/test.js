@@ -17,7 +17,16 @@ describe('fabricator-assemble', function () {
 		data: ['./test/fixtures/data/**/*.{yml,json}'],
 		docs: './test/fixtures/docs/**/*',
 		dest: './test/output',
-		helpers: {},
+    filters: {
+			'emphasize': function (value) {
+			  return '*' + value + '*';
+			}
+		},
+    functions: {
+      'iterate': function (times) {
+        return Array.apply(null, Array(times)).map(function (_, i) {return i;});;
+      }
+    },
 		logErrors: true
 	};
 
